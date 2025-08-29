@@ -28,7 +28,7 @@ pip install llmcompressor vllm lm-eval
 1. Run quantization:
 ```bash
 # Default: 2048 cal samples, 3072 seq len, WikiText-103
-./run_llmcompressor.sh
+./compressh.sh
 
 # Custom settings
 MAX_CALIB_SAMPLES=1024 MAX_SEQ_LEN=2048 ./run_llmcompressor.sh
@@ -48,8 +48,8 @@ python eval.py
 ### Outputs
 
 - Quantized model: `./models/deepseek-r1-llama-8b-llmc/`
-- Benchmarks: `./bench_out/<timestamp>/`
-- Logs: `./sparse_logs/`
+- Benchmarks: `./outputs/<timestamp>/`
+- Logs: `./logs/`
 
 ## Configuration
 
