@@ -1,14 +1,12 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Inputs (override via env)
 BASELINE_MODEL_ID="${BASELINE_MODEL_ID:-deepseek-ai/DeepSeek-R1-Distill-Llama-8B}"
 QUANT_MODEL_DIR="${QUANT_MODEL_DIR:-./models/deepseek-r1-llama-8b-llmc}"
 TASKS="${TASKS:-wikitext}"
 BATCH_SIZE="${BATCH_SIZE:-auto}"
 SEED="${SEED:-1234}"
 
-# Output locations
 STAMP=$(date +%Y%m%d_%H%M%S)
 OUT_ROOT="${OUT_ROOT:-outputs}"
 OUT_DIR="$OUT_ROOT/$STAMP"
@@ -38,7 +36,6 @@ lm-eval \
 echo
 echo "[bench] Results saved under: $OUT_DIR"
 
-# Optional summary with jq
 if command -v jq >/dev/null 2>&1; then
   base_json=$(ls -1 ${BASE_OUT}/*.json 2>/dev/null | head -n1 || true)
   quant_json=$(ls -1 ${QUANT_OUT}/*.json 2>/dev/null | head -n1 || true)
@@ -52,7 +49,6 @@ if command -v jq >/dev/null 2>&1; then
       b=$(jq -r ".results[\"${task_key}\"][\"${metric}\"].value // .results[\"${task_key}\"][\"${metric}\"] // empty" "${base_json}" 2>/dev/null || true)
       q=$(jq -r ".results[\"${task_key}\"][\"${metric}\"].value // .results[\"${task_key}\"][\"${metric}\"] // empty" "${quant_json}" 2>/dev/null || true)
       if [[ -n "$b" && -n "$q" ]]; then
-        # relative increase (higher is worse for perplexities)
         delta=$(python - <<PY
 b = float("${b}"); q = float("${q}")
 print(f"{(q - b) / b * 100:.2f}")

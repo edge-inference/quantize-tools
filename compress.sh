@@ -2,8 +2,14 @@
 set -euo pipefail
 
 # Model and output
-export MODEL_ID="${MODEL_ID:-deepseek-ai/DeepSeek-R1-Distill-Llama-8B}"
-export OUT_DIR="${OUT_DIR:-./models/deepseek-r1-llama-8b-llmc}"
+export MODEL_ID="${MODEL_ID:-deepseek-ai/DeepSeek-R1-Distill-Qwen-14B}"
+
+if [[ -z "${OUT_DIR:-}" ]]; then
+    MODEL_NAME=$(echo "$MODEL_ID" | sed 's|.*/||' | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9.-]/-/g')
+    export OUT_DIR="./models/${MODEL_NAME}-llmc"
+else
+    export OUT_DIR="${OUT_DIR}"
+fi
 mkdir -p "$OUT_DIR"
 
 # Quant scheme: AWQ only
@@ -24,7 +30,6 @@ export OMP_NUM_THREADS="${OMP_NUM_THREADS:-32}"
 # Reduce CUDA memory fragmentation
 export PYTORCH_CUDA_ALLOC_CONF="${PYTORCH_CUDA_ALLOC_CONF:-expandable_segments:True}"
 
-# Use project venv python by default
 PYBIN="${PYBIN:-/home/lab/modfi/autoawq/venv/bin/python}"
 
 "$PYBIN" - <<'PY'
@@ -43,6 +48,11 @@ preproc_workers = int(os.environ.get("PREPROC_WORKERS", "8"))
 pad_to_max_length = os.environ.get("PAD_TO_MAX_LEN", "false").lower() == "true"
 
 from llmcompressor.modifiers.awq import AWQModifier as Modifier
+import datetime
+
+model_name = model_id.split('/')[-1].lower().replace('-', '_')
+timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+log_dir = f"./logs/{model_name}_{timestamp}"
 
 # Ignore lm_head per common practice when weight-only quantizing
 recipe = [Modifier(scheme=scheme, targets="Linear", ignore=["lm_head"])]
@@ -58,7 +68,7 @@ oneshot(
     shuffle_calibration_samples=shuffle_calib,
     preprocessing_num_workers=preproc_workers,
     pad_to_max_length=pad_to_max_length,
-    log_dir="./logs",
+    log_dir=log_dir,
 )
 
 print("Saved llm-compressor checkpoint to:", out_dir)
